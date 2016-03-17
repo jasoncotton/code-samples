@@ -1,0 +1,138 @@
+
+// I built this as a solution to a hackerrank problem since javascript fails at handling large numbers with built-ins.
+// Solution: handle the number as a string conver to arrays and back to strings doing the multiplication and addition manually.
+// Todo: Better solution: use the string inline instead of converting to arrays.
+
+
+function BigInt(input) {
+    var util = {
+        multiplyTwoDigits: function (d1, d2, c) {
+//            console.log('[DEBUG] multiply and carry: ', d1, d2, c, " = " + ((Number(d1) * Number(d2)) + Number(c || 0)));
+            return (Number(d1) * Number(d2)) + Number(c || 0);
+        },
+        addTwoDigits: function (d1, d2, c) {
+//            console.log('[DEBUG] add and cary: ', d1, d2, c, '=', ((Number(d1) + Number(d2)) + Number(c || 0)));
+            return (Number(d1) + Number(d2)) + Number(c || 0);
+        },
+        getBase: function (input) {
+            return input % 10;
+        },
+        getCarry: function (input) {
+            if (input && !isNaN(input)) {
+                return (Number(input) - util.getBase(Number(input))) / 10;
+            }
+            return 0;
+        }
+    };
+    
+    // Input should be a number or a string representation of the number
+    this.bigint = String(input); // ensure that it's a string
+    self = this;
+    
+    this.multiply = function (int2) {
+        if (!(int2 instanceof BigInt)) {
+            int2 = new BigInt(int2);
+        }
+        // Get the lengths of the two
+        var int1L = this.bigint.length,
+            int2L = int2.length,
+            maxLength = int1L > int2L ? int1L : int2L,
+            arr1 = this.bigint.split('').reverse(),
+            arr2 = int2.bigint.split('').reverse(),
+            output = [],
+            carry = 0;
+        
+        /* Algorithm for multiplying two numbers:
+           ABCD
+          x  FE
+          -----
+          1. D*E => ones place with carry
+          2. C*E + carry => tens place with carry
+          3. B*E + carry => hundreds place with carry
+          4. A*E + carry => thousands place with carry
+          5. carry => ten thousands place
+          6. Repeat with F multiplied by 10.
+        */
+        var i = 0,
+            j = 0,
+            multiplyResult;
+        
+        for (i = 0; i < arr1.length; i++) {
+            for (j = 0; j < arr2.length; j++) {
+                multiplyResult = util.multiplyTwoDigits(arr1[i], arr2[j], carry);
+                
+//                console.log( (i+j) + ': ' +arr1[i] + ' x ' + arr2[j] + ' + ' + carry + ' = ' + multiplyResult);
+                
+                if (output[i + j] === undefined) {
+                    output[i + j] = 0;
+                }
+                
+                multiplyResult += output[i + j];
+                carry = util.getCarry(multiplyResult);
+                output[i + j] = util.getBase(multiplyResult);
+            }
+            // have looped through the number if carry is valid, then we don't just push it, we need to add to i + arr2.length
+            if (carry > 0) {
+                if (output[i+j] === undefined) {
+                    output[i+j] = 0;
+                }
+                output[i+j] += carry;
+                // clear the carry
+                carry = 0;
+            }
+        }
+        var t = Array.prototype.slice.call(output).reverse();
+        
+        // Perform some clean up of numbers
+        var i, 
+            foundNonZero = false,
+            firstNonZero = null;
+//        console.log(t);
+        for (var i = 0 ; i < t.length; i++) {
+            if (!foundNonZero) {
+                if (t[i] !== 0) {
+                    foundNonZero = true;
+                    firstNonZero = i;
+                }
+            }
+        }
+        
+        if (foundNonZero && firstNonZero !== 0) {
+            t = Array.prototype.slice.call(t, firstNonZero);
+        } else if (foundNonZero === false) {
+            t = [0];
+        }
+//        console.log('new t: ', t);
+        return new BigInt(t.join(''));
+    };
+    
+    this.add = function (int2) {
+        if (!(int2 instanceof BigInt)) {
+            int2 = new BigInt(int2);
+        }
+        
+        // console.log('[INFO] adding ' + this.bigint + ' and ' + int2.bigint);
+        // Get the lengths of the two
+        var int1L = this.bigint.length,
+            int2L = int2.length,
+            maxLength = int1L > int2L ? int1L : int2L,
+            arr1 = this.bigint.split(''),
+            arr2 = int2.bigint.split(''),
+            output = [],
+            carry = 0;
+        
+        while (arr1.length > 0 || arr2.length > 0) { // arr 1 is the longer of the two arrays
+            var a = arr1.length > 0 ? arr1.pop() : 0,
+                b = arr2.length > 0 ? arr2.pop() : 0,
+                opOut = util.addTwoDigits(a, b, carry);
+
+//            console.log('[INFO] opOut: ', opOut);
+            carry = util.getCarry(opOut);
+            output.unshift('' + util.getBase(opOut));
+        }
+        if (carry > 0) {
+            output.unshift('' + carry);
+        }
+        return new BigInt(output.join(''));
+    };
+}
